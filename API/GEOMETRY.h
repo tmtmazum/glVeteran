@@ -1,0 +1,169 @@
+#ifndef GEOMETRY_H
+#define GEOMETRY_H
+
+#include "Util.h"
+#include "angle.h"
+#include "Pos.h"
+#include "DEBUG.h"
+#include "transform.h"
+#include <string>
+#include <vector>
+#include <map>
+#include <limits>
+#include <cstdarg>
+#include <GL/glut.h>
+#include <iostream>
+
+struct WO;
+typedef std::vector<WO> VecWO;
+
+struct GO
+{
+    enum
+    {
+    LINE,
+    SQUARE,
+    RECT,
+    
+    STAR,
+    
+    CUBE,
+    FACE,
+    CYLINDER,
+    CONE
+    };
+};
+
+struct WO
+{
+    int GO_type;
+    VecF GO_data;
+
+    std::map< int, std::vector<float> > property_data;
+
+    enum property
+    {
+	POSITION,
+	COLOR,
+	ALPHA,
+	ROTATION,
+	SCALE,
+	NP_SCALE,
+	GEOMETRY,
+	COLLISION
+    };
+        
+ static int getPropertyEnum(std::string s)
+    {
+	if(s.compare("POSITION")==0)
+	    return POSITION;
+	else if(s.compare("COLOR")==0)
+	    return COLOR;
+	else if(s.compare("ALPHA")==0)
+	    return ALPHA;
+	else if(s.compare("ROTATION")==0)
+	    return ROTATION;
+	else if(s.compare("SCALE")==0)
+	    return SCALE;
+	else if(s.compare("NP_SCALE")==0)
+	    return NP_SCALE;
+	else if(s.compare("GEOMETRY")==0)
+	    return GEOMETRY;
+	else if(s.compare("COLLISION")==0)
+	    return COLLISION;
+    }
+    
+    WO(): GO_type(END_I) {}
+    
+    void printPropertyData()
+    {
+	DEBUG("Showing WO",0);
+	std::cout << "GO type = " << GO_type << std::endl;
+	std::cout << "GO| ";
+	for(VecF::iterator it = GO_data.begin(); it != GO_data.end(); ++it)
+	{
+	    std::cout << *it << ", ";
+	}
+	std::cout << std::endl;
+	for(std::map< int , std::vector<float> >::iterator it = property_data.begin(); it != property_data.end(); ++it)
+	{
+	    std::cout << it->first << "| ";
+	    for(VecF::iterator itx = (it->second).begin(); itx != (it->second).end(); ++itx )
+	    {
+		std::cout << *itx << ", ";
+	    }
+	    std::cout << std::endl;
+	}
+	std::cout << "-----" << std::endl;
+    }
+
+    bool has( property p )
+    {
+	if(p==GEOMETRY)
+	{
+	    return !GO_data.empty() && GO_type!=END_I;
+	}
+	else
+	{
+	    std::map< int, std::vector<float> >::iterator f = property_data.find( (int)p );
+	    return (f != property_data.end()) && (!f->second.empty());
+	}
+    }
+    
+    void setGeometry( int i , ... )
+    {
+	GO_type = i;
+	VecF PD;
+	va_list ARGs;
+	va_start( ARGs , i );
+	while( true )
+	{
+	    float g = va_arg( ARGs , double );
+	    if( g == END_F ) 
+	    break;
+	    GO_data.push_back( g );
+	}
+	va_end( ARGs );
+    }
+    void setGeometry( int i , const VecF& dt )
+    {
+	GO_type = i;
+	GO_data = dt;
+    }
+    
+    
+    void set( property p , ... )
+    {
+	VecF PD;
+	va_list ARGs;
+	va_start( ARGs , p );
+	while( true )
+	{
+	    float g = va_arg( ARGs , double );
+	    if( g == END_F ) break;
+	    PD.push_back( g );
+	}
+	va_end( ARGs );
+	property_data[ p ] = PD; 
+    }
+    void set( property p , const VecF& VF )
+    {
+	property_data[p] = VF;
+    }
+    
+    VecF get(property p) 
+    {
+	VecF V = property_data[ p ];
+	return V;
+    }
+    int getGeometryType() const
+    {
+	return GO_type;
+    }
+    VecF getGeometryData() const
+    {
+	return GO_data;
+    }
+};
+
+#endif
