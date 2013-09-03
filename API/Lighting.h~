@@ -106,6 +106,10 @@ struct Lighting
 	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 	// glColorMaterial(GL_FRONT_AND_BACK, GL_SPECULAR);
 	glEnable( GL_DEPTH_TEST );   
+	
+	assert(GL_LIGHT0==0);
+	assert(GL_LIGHT1==1);
+	assert(GL_LIGHT2==2);
 	}
     }
     

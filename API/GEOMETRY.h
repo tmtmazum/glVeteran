@@ -27,8 +27,11 @@ struct GO
     
     STAR,
     
+    LIGHT_RADIAL,
     CUBE,
     FACE,
+    FACE_BOTTOM,
+    GRID_CHEQUERED,
     CYLINDER,
     CONE
     };

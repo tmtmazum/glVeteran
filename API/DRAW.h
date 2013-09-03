@@ -79,7 +79,7 @@ inline void draw2D( WO& obj )
 	}*/
     }
 }
-inline void draw3D_pure( WO& obj , bool diagnostic_shade );
+inline void draw3D_pure( WO& obj , bool diagnostic_shade = false );
 
 inline void draw3D( WO& obj )
 {
@@ -118,7 +118,7 @@ inline void draw3D( WO& obj )
 	    glColor3fv( &color.at(0) );
 	    //glColor3f( color.at(0) , color.at(1) , color.at(2) );
     }
-    draw3D_pure( obj , true );
+    draw3D_pure( obj );
     
     if( obj.has( WO::COLOR ) )
     {
@@ -143,12 +143,62 @@ inline void draw3D( WO& obj )
     }
 }
 
-inline void draw3D_pure( WO& obj , bool diagnostic_shade = false )
+inline void draw3D_pure( WO& obj , bool diagnostic_shade )
 // draws the object without any transformations
 {
    int t = obj.getGeometryType();
    switch( t )
    {
+       case GO::STAR:
+       {
+	   float r = 0.005;
+	   glBegin( GL_LINES );
+		glVertex3f( -r , 0, 0 );
+		glVertex3f( r , 0, 0 );
+		glVertex3f( 0 , -r, 0 );
+		glVertex3f( 0 , r, 0 );
+		glVertex3f( 0 , 0, -r );
+		glVertex3f( 0 , 0, r );
+	    glEnd();
+	   break;
+       }
+       case GO::LIGHT_RADIAL:
+       {
+	   VecF num = obj.getGeometryData();
+	   assert( !num.empty() && obj.has(WO::POSITION) && obj.has(WO::COLOR));
+	   int LIGHT_ID = GL_LIGHT0; //num.at(0);
+	   float LIGHT_ATTENUATION = (num.size() > 1 ? num.at(1) : 1.0);
+	   if( LIGHT_ATTENUATION < 0 ) LIGHT_ATTENUATION = 0;
+	   LIGHT_ATTENUATION = 1/LIGHT_ATTENUATION;
+	   
+	   VecF Pos = obj.get( WO::POSITION );
+	   float pos[4] = { 0.0 , 0.0 , 0.0 , 1.0 };
+	   glLightfv(LIGHT_ID, GL_POSITION, pos );
+	   glLightf(LIGHT_ID, GL_CONSTANT_ATTENUATION, 0.0*LIGHT_ATTENUATION);
+	   glLightf(LIGHT_ID, GL_QUADRATIC_ATTENUATION, 10.0*LIGHT_ATTENUATION);
+
+	    glLightfv(LIGHT_ID, GL_SPECULAR, &obj.get(WO::COLOR).front() );
+	    glLightfv(LIGHT_ID, GL_DIFFUSE, &obj.get(WO::COLOR).front() );
+	    glLightfv(LIGHT_ID, GL_AMBIENT, &obj.get(WO::COLOR).front());
+	    
+	    glEnable( GL_LIGHTING );
+	    // glDisable( LIGHT_ID );
+	    glEnable( LIGHT_ID );
+	glEnable( GL_COLOR_MATERIAL );
+	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+	glEnable(GL_DEPTH_TEST);
+	glShadeModel( GL_SMOOTH );
+	
+	if(diagnostic_shade)
+	{
+	    WO light_marker;
+	    light_marker.setGeometry( GO::STAR , END_F );
+	    light_marker.set( WO::COLOR , Colors::Yellow.R , Colors::Yellow.G ,
+			      Colors::Yellow.B , END_F );
+	    draw3D( light_marker );
+	}
+	   break;
+       }
        case GO::LINE:
        {
 	    VecF pt = obj.getGeometryData();
@@ -177,6 +227,54 @@ inline void draw3D_pure( WO& obj , bool diagnostic_shade = false )
 	   glEnd();
 	   }
 	   break;
+       case GO::FACE_BOTTOM:
+	   {
+	   VecF P = obj.get( WO::POSITION );
+	   PosXYZ pos(0,0,0);
+	   // PosXYZ pos( P.at(0) , P.at(1) , P.at(2) );
+	   glBegin( GL_QUAD_STRIP );
+	    glTexCoord2f( 0 , 1 );
+	    glVertex3f( pos.X - 0.5 , pos.Y + 0.5 , pos.Z );
+	    glTexCoord2f( 1 , 1 );
+	    glVertex3f( pos.X + 0.5 , pos.Y + 0.5 , pos.Z );
+	    glTexCoord2f( 0 , 0 );
+	    glVertex3f( pos.X - 0.5 , pos.Y - 0.5 , pos.Z );
+	    glTexCoord2f( 1 , 0 );
+	    glVertex3f( pos.X + 0.5 , pos.Y - 0.5 , pos.Z );
+	   glEnd();
+	   }
+	   break;
+       case GO::GRID_CHEQUERED:
+       {
+	    float interval = 0.1;
+	    float zUnder = 0.0001;
+	    
+	    ColorRGBA Black( 0.0, 0.0, 0.0, 0.95 );
+	    ColorRGBA White( 1.0, 1.0, 1.0, 0.95 );
+	    
+	    bool alternate = false;
+	    
+	    for(float i = -1.0; i < (1.0 - interval); i += interval)
+	    {
+		if( alternate ) Black.get();
+		else White.get();
+		
+		for(float j = -1.0; j < (1.0 - interval); j += interval)
+		{   
+		    glBegin( GL_POLYGON );
+		    if( alternate ) Black.get();
+		    else White.get();
+			glVertex3f( i , j , zUnder );
+			glVertex3f( i+interval , j , zUnder );
+			glVertex3f( i+interval , j+interval , zUnder );
+			glVertex3f( i , j+interval , zUnder );
+		    glEnd();
+		    
+		    alternate = !alternate;
+		}
+	    }
+	   break;
+       }
        case GO::CUBE:
 	{
 	   VecF P = obj.get( WO::POSITION );
