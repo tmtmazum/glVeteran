@@ -15,7 +15,7 @@ void handleGameInitialize();	// REQUIRED
 void handleGameDisplay();	// REQUIRED
 void handleGameIdle();		// REQUIRED
 
-float GLOBAL_WINDOW_WIDTH = 1000;
+float GLOBAL_WINDOW_WIDTH = 800;
 float GLOBAL_WINDOW_HEIGHT = 800;
 
 float GLOBAL_WINDOW_POS_X = 10;

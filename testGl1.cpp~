@@ -124,12 +124,36 @@ void handleMousePress( int button, int state, int x, int y )
     //{
     if(state == GLUT_DOWN) Mouse.savePos();
 }
+bool line_selected = false;
 void handleMouseMotion(int x, int y)
 {
     Mouse.setPosition( x , y );
     MouseDiff = getMouseDiff( Mouse.At , Mouse.loadPos() );
+    
 }
-void handleMousePassiveMotion( int x, int y ){}
+void handleMousePassiveMotion( int x, int y )
+{
+    
+    glMatrixMode( GL_PROJECTION );
+    glPushMatrix( );
+    glLoadIdentity();
+    glMatrixMode( GL_MODELVIEW );
+    glPushMatrix( ); 
+    glLoadIdentity();
+    
+    GLuint select_index;
+    glReadPixels(x, GLOBAL_WINDOW_HEIGHT - y, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &select_index);
+    if(select_index==1) line_selected = true;
+    else line_selected = false;
+    
+    
+    glPopMatrix();
+    glMatrixMode( GL_MODELVIEW );
+    glPopMatrix( ); 
+
+    DEBUG("x", x );
+    DEBUG("y", y );
+}
 
 void handleScreenResize(int width, int height){}
 
@@ -137,8 +161,11 @@ void handleGameInitialize()
 {
     Cam.init();
     Lights.toggleTransparency( true );
+    glClearStencil(0);
     // Lights.setMode(2 );
 }	// REQUIRED
+
+
 void handleGameDisplay()
 {
     
@@ -153,17 +180,31 @@ void handleGameDisplay()
     glMatrixMode( GL_MODELVIEW );
     glLoadIdentity();
     
+    if(line_selected)
+    {
+	glLineWidth( 2.0 );
+	Colors::Orange.get();
+    }
     WO line_1;
-    line_1.setGeometry( GO::LINE , 0.4 , 0.4 , 0.0 , END_F );
+    line_1.setGeometry( GO::CUBE , 0.4 , 0.4 , 0.0 , END_F );
     line_1.set( WO::POSITION , 0.0 , 0.0 , 0.0 , END_F );
-    draw3D( line_1 );
-	    
-    Cam.update();
+    
+    glStencilOp( GL_KEEP , GL_KEEP , GL_REPLACE );
+    glStencilFunc( GL_ALWAYS , 1 , -1 );
+    glEnable( GL_STENCIL_TEST );
+    // draw3D( line_1 );
+    glDisable( GL_STENCIL_TEST );
+    
+    glLineWidth( 1.0 );
+
+    Cam.update();	// --- Apply 3D transform
+    
+    
     Lights.setCenter( Cam.Center );
     // Lights.setMode(2);
     WO lit1;
     lit1.setGeometry( GO::LIGHT_RADIAL , 0.0  , 1.0 + chVar.Y/10, END_F );
-    lit1.set( WO::POSITION , Cam.Center.X , Cam.Center.Y , Cam.Center.Z + 0.1, END_F );
+    lit1.set( WO::POSITION , Cam.Center.X , Cam.Center.Y , Cam.Center.Z - 0.1, END_F );
     lit1.set( WO::COLOR , 1.0 , 1.0 , 1.0 , 1.0 , END_F );
     lit1.set( WO::SCALE , scale );
     draw3D( lit1 );
@@ -195,7 +236,8 @@ void handleGameDisplay()
     
     single.setGeometry( GO::CUBE , END_F );
     single.set( WO::SCALE , 0.1 , END_F );
-    single.set( WO::NP_SCALE , 1.0 , 1.0 , 10.0, END_F );
+    static FrameEval FE;
+    single.set( WO::NP_SCALE , 1.0 , 1.0*FE('a',1.0,FrameEval::INCR_TO_CUBIC,10.0,100,-500) , 10.0, END_F );
     single.set( WO::COLOR , 0.5 , 0.5 , 0.5 , END_F );
     draw3D( single );
     // draw3D_pure( single , true );
@@ -212,8 +254,8 @@ void handleGameIdle()
 
 int main(int nArgs , char** args)
 {
-    GLOBAL_WINDOW_WIDTH = 1000;
-    GLOBAL_WINDOW_HEIGHT = 800;
+    GLOBAL_WINDOW_WIDTH = 1280;
+    GLOBAL_WINDOW_HEIGHT = 745;
     // GLOBAL_TITLE = "Nada";
     run2D( nArgs , args );
 }
