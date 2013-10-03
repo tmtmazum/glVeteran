@@ -31,8 +31,10 @@ struct GO
     CUBE,
     FACE,
     FACE_BOTTOM,
+    V_WALL,
     GRID_CHEQUERED,
     CYLINDER,
+    SPHERE,
     CONE
     };
 };
@@ -53,7 +55,8 @@ struct WO
 	SCALE,
 	NP_SCALE,
 	GEOMETRY,
-	COLLISION
+	COLLISION,
+	TILING_FACTOR
     };
         
  static int getPropertyEnum(std::string s)

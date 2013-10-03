@@ -27,10 +27,11 @@ struct GO
     
     STAR,
     
-    LIGHT_PT,
+    LIGHT_RADIAL,
     CUBE,
     FACE,
     FACE_BOTTOM,
+    V_WALL,
     GRID_CHEQUERED,
     CYLINDER,
     CONE
@@ -53,7 +54,8 @@ struct WO
 	SCALE,
 	NP_SCALE,
 	GEOMETRY,
-	COLLISION
+	COLLISION,
+	TILING_FACTOR
     };
         
  static int getPropertyEnum(std::string s)

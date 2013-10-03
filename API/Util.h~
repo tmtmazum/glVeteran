@@ -4,11 +4,23 @@
 #include <cmath>
 #include <cassert>
 #include <string>
+#include <sstream>
+#include <vector>
+#include <map>
 #include <cstdlib>
 
 #include <limits>
+#include <GL/glut.h>
 
 #define END_F std::numeric_limits<float>::max()
+#define END_I std::numeric_limits<int>::max()
+
+typedef std::vector<float> VecF;
+typedef std::vector<std::string> VecS;
+typedef std::map<std::string, float> MapSF;
+typedef std::map<int,float> MapIF;
+typedef std::vector<std::string> VecS;
+typedef std::string Str;
 
 namespace Util
 {
@@ -22,6 +34,10 @@ namespace Util
     {
 	return f1 < f2 ? f1 : f2;
     }
+    inline float max(float f1, float f2)
+    {
+	return f1 < f2 ? f2 : f1;
+    }
     
     inline float min(float f1, float f2, float f3, float f4)
     {
@@ -31,6 +47,29 @@ namespace Util
     inline float stringToFloat( std::string s )
     {
 	return ::atof( s.c_str() );
+    }
+    
+    inline std::string floatToString( float f )
+    {
+	std::ostringstream ss;
+	ss << f;
+	std::string s(ss.str());
+	return s;
+    }
+
+    inline void moderateDivEq(float* target, float rate, float snapToZeroRange = 0.00001)
+    {
+	// Example Use:
+	// moderateDivEq( &mouseDiff.X , 0.007 );
+	*target = ( *target / (1+rate) );
+	*target = (*target < snapToZeroRange && *target > -snapToZeroRange ? 0 : *target);
+    }
+    
+    inline void printToScreen( std::string text , PosXYZ p )
+    {
+	// glRasterPos3f( p.X , p.Y , p.Z );
+	for(std::string::iterator i = text.begin(); i != text.end(); ++i)
+	    glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *i);
     }
 
 };

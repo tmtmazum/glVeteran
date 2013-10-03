@@ -97,6 +97,10 @@ void handleKeyPress( unsigned char key, int x, int y )
 	case 't':
 	    rotates.Y += 0.04;
 	    break;
+	    
+	case 9:
+	    GLOBAL_SHOW_PTS = !GLOBAL_SHOW_PTS;
+	    break;
     }
     
 }
@@ -125,6 +129,7 @@ void handleMousePress( int button, int state, int x, int y )
     if(state == GLUT_DOWN) Mouse.savePos();
 }
 bool line_selected = false;
+bool ls = false;
 void handleMouseMotion(int x, int y)
 {
     Mouse.setPosition( x , y );
@@ -141,10 +146,18 @@ void handleMousePassiveMotion( int x, int y )
     glPushMatrix( ); 
     glLoadIdentity();
     
-    GLuint select_index;
-    glReadPixels(x, GLOBAL_WINDOW_HEIGHT - y, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &select_index);
-    if(select_index==1) line_selected = true;
-    else line_selected = false;
+    PosXY pickSize( 5.0 , 5.0 );
+    
+    int n = pickSize.X*pickSize.Y;
+    GLuint select_index[ n ];
+    glReadPixels(x - (pickSize.X/2), GLOBAL_WINDOW_HEIGHT - y + (pickSize.Y/2), pickSize.X, pickSize.Y, GL_STENCIL_INDEX, GL_UNSIGNED_INT, select_index);
+    for(int i = 0; i < n; ++i)
+    {
+    if(select_index[i]==1) { line_selected = true; break; }
+    else if(select_index[i]==3) { ls = true; break; }
+    else if(i+1==n) { line_selected = false; ls = false; }
+    else if(select_index[i] != 0) { DEBUG("Unknown stencil index", select_index[i]); }
+    }
     
     
     glPopMatrix();
@@ -155,13 +168,35 @@ void handleMousePassiveMotion( int x, int y )
     DEBUG("y", y );
 }
 
-void handleScreenResize(int width, int height){}
+void handleScreenResize(int width, int height)
+{
+    GLOBAL_WINDOW_HEIGHT = height;
+    GLOBAL_WINDOW_WIDTH = width;
+}
 
+TextureIF* T1;
+TextureIF* T2;
+
+TextureManager* TM;
 void handleGameInitialize()
 {
     Cam.init();
     Lights.toggleTransparency( true );
     glClearStencil(0);
+    
+    TM = new TextureManager();
+    TM->add( new TextureIF( ImagePNG( "image/dockr2.png" ) ) , 0 );
+    TM->add( new TextureIF( ImagePNG( "image/sdrain2.png" ) ) , 1 );
+    TM->add( new TextureIF( ImagePNG( "image/floor-tiles-1.png" ) ), 2 );
+    TM->add( new TextureIF( ImagePNG( "image/grey-ground-1.png" ) ), 3 );
+    TM->add( new TextureIF( ImagePNG( "image/testSpriteSheet.png" ) ), 4 );
+    TM->add( new TextureIF( ImagePNG( "image/mosaic2.png" ) ), 5 );
+    TM->add( new TextureIF( ImagePNG( "image/chrome-1.png" ) ), 6 );
+    TM->add( new TextureIF( ImagePNG( "image/wavering-sphere-1.png" ) ), 7 );
+    TM->add( new TextureIF( ImagePNG( "image/track14.png" ) ), 8 );
+    TM->add( new TextureIF( ImagePNG( "image/futuristic-board.png" ) ), 9 );
+    TM->add( new TextureIF( "image/Qtiles.bmp" ), 10 );
+    TM->add( new TextureIF( ImagePNG( "image/seamless_1.png" ) ), 11 );
     // Lights.setMode(2 );
 }	// REQUIRED
 
@@ -170,9 +205,38 @@ void handleGameDisplay()
 {
     
     if(Mouse.buttonsPressed & MouseAB::MMB) { Cam.translateXYZ( MouseDiff ); }
-    if(Mouse.buttonsPressed & MouseAB::LMB) { Cam.rotateXYZ( MouseDiff ); }
-    if(Mouse.buttonsPressed & MouseAB::RMB) { Cam.scaleXYZ( MouseDiff ); }
-	
+    else if(Mouse.buttonsPressed & MouseAB::LMB) { Cam.rotateXYZ( MouseDiff ); }
+    else if(Mouse.buttonsPressed & MouseAB::RMB) { Cam.scaleXYZ( MouseDiff ); }
+    else
+    { // smooth effect
+	if(Mouse.buttonsPressed & MouseAB::MMB) { Cam.translateXYZ( MouseDiff ); }
+	if(Mouse.buttonsPressed & MouseAB::LMB) { Cam.rotateXYZ( MouseDiff ); }
+	if(Mouse.buttonsPressed & MouseAB::RMB) { Cam.scaleXYZ( MouseDiff ); }
+    
+	if(Mouse.buttonsPressed == 0)
+	{
+	    // Still keep transitioning a while even after all buttons 
+	    // have been released
+	    switch(Mouse.lastButton)
+	    {
+		case MouseAB::LMB: Cam.rotateXYZ( MouseDiff ); break;
+		// case 1: Cam.rotateXYZ( MouseDiff ); break;
+		case MouseAB::RMB: Cam.scaleXYZ( MouseDiff ); break;
+	    }
+	    Util::moderateDivEq( &MouseDiff.X , 0.007 );
+	    Util::moderateDivEq( &MouseDiff.Y , 0.007 );
+	}
+	if(Mouse.buttonsPressed==0 && Cam.Eye.theta > (PI/2))
+	{
+	    float nw_angle = Cam.Eye.theta - (PI/2);
+	    nw_angle /= (PI/2);
+	    Util::moderateDivEq( &MouseDiff.X , 0.007 );
+	    // moderateDivEq( &nw_angle, 0.07*((PI/2) -nw_angle) );
+	    nw_angle *= (PI/2);
+	    // moderateMinusEq( &nw_angle, 0.07*nw_angle );
+	    Cam.Eye.theta = (PI/2 + nw_angle);
+	}
+    }
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     
     glMatrixMode( GL_PROJECTION );
@@ -208,9 +272,23 @@ void handleGameDisplay()
     lit1.set( WO::COLOR , 1.0 , 1.0 , 1.0 , 1.0 , END_F );
     lit1.set( WO::SCALE , scale );
     draw3D( lit1 );
-    
+    /*
     glColor4f( 0.1 , 1.0 , 0.1 , 0.95 );
-    
+    glShadeModel( GL_SMOOTH );
+    // glEnable( GL_NORMALIZE );
+    glBegin( GL_TRIANGLE_STRIP );
+	glColor4f( 0.3 , 0.3 , 0.3 , 0.9 );
+	glNormal3f( 0.0 , 0.0 , 1.0 );
+	    glVertex3f( 0.7 , -0.3 , 0.3 );
+	glNormal3f( 0.0 , 1.0 , 0.0 );
+	    glVertex3f( 0.7 , 0.3 , 0.3 );
+	glColor4f( 0.0 , 0.0 , 0.0 , 0.9 );
+	glNormal3f( 1.0 , 0.0 , 0.0 );
+	    glVertex3f( -0.7 , -0.3 , 0.3 );
+	glNormal3f( 0.0 , 0.0 , 0.0 );
+	    glVertex3f( -0.7 , 0.3 , 0.3 );
+    glEnd();
+    */
     WO single;
     single.setGeometry( GO::FACE_BOTTOM , END_F );
     // single.setGeometry( GO::FACE_BOTTOM , 13.0 , END_F );
@@ -227,19 +305,110 @@ void handleGameDisplay()
     */
     glPolygonMode( GL_FRONT_AND_BACK , GL_FILL );
     
-    TextureIF* T1;
-    T1 = new TextureIF( "image/Qtiles.bmp" );
-    T1->enable();
+    single.set( WO::TILING_FACTOR , 5.0 , 5.0 , END_F );
+    TM->activate( ((int)chVar.Y) % TM->tile_count );
+    //T2->enable();
     draw3D( single );
-    T1->disable();
-    delete T1;
+    TM->deactivate();
+    
+    WO wall1;
+    wall1.setGeometry( GO::FACE , END_F );
+    wall1.set( WO::POSITION , 0.45 , 0.5 , 0.2 , END_F );
+    wall1.set( WO::SCALE , 0.5 , END_F );
+    wall1.set( WO::ROTATION , 0.0 , PI/8 , END_F );
+    wall1.set( WO::TILING_FACTOR , 5.0 , 5.0 , END_F );
+    TM->activate(1);
+    // draw3D( wall1 );
+    TM->deactivate();
+    
+    
+    WO wall2;
+    wall2.setGeometry( GO::V_WALL , 0.5 ,	// height 
+		       0.5 , 0.5 , 0.0 , 	// p1
+		       0.5 , 0.0 , 0.0 , 	// p2
+		       0.5 , -0.5 , 0.0 , 	// p3
+				END_F );
+    wall2.set( WO::TILING_FACTOR , 5.0 , 5.0 , END_F );
+    
+    TM->activate(1);
+    draw3D( wall2 );
+    TM->deactivate();
+    
+    
+    
+    wall1.set( WO::POSITION , 0.45 , 0.1 , 0.2 , END_F );
+    TM->activate(1);
+    // draw3D( wall1 );
+    TM->deactivate();
+    
+    WO p_body;
+    p_body.setGeometry( GO::CYLINDER , 10.0 , END_F );
+    p_body.set( WO::POSITION , 0.0 , 0.0 , 0.2 , END_F );
+    p_body.set( WO::SCALE , 0.04 , END_F );
+    p_body.set( WO::NP_SCALE , 1.0 , 1.0 , 2.0 , END_F );
+    p_body.set( WO::ROTATION , 0.0 , 0.1*chVar.Y, END_F );
+    p_body.set( WO::TILING_FACTOR , 0.5 , 0.5, END_F );
+    DEBUG("chVar.X",chVar.X);
+    TM->activate(3);
+    // draw3D( p_body );
+    draw3D( p_body );
+    
+    p_body.set( WO::SCALE , 0.024 , END_F );
+    p_body.set( WO::NP_SCALE , 0.5 , 0.7 , 2.0 , END_F );
+    p_body.set( WO::POSITION , -0.035 , 0.0 , 0.08 , END_F );
+    
+    draw3D( p_body );
+    
+    p_body.set( WO::POSITION , 0.035 , 0.0 , 0.08 , END_F );
+    draw3D( p_body );
+    
+    TM->deactivate();
+    
+    WO p_head;
+    p_head.setGeometry( GO::SPHERE , 10.0 , 10.0 , END_F );
+    p_head.set( WO::POSITION , 0.0 , 0.0 , 0.5 , END_F );
+    p_head.set( WO::SCALE , 0.04 , END_F );
+    
+    TM->activate(3);
+    draw3D( p_head );
+    TM->deactivate();
+    
+    
+    // T2->disable();
     
     single.setGeometry( GO::CUBE , END_F );
     single.set( WO::SCALE , 0.1 , END_F );
     static FrameEval FE;
-    single.set( WO::NP_SCALE , 1.0 , 1.0*FE('a',1.0,FrameEval::INCR_TO_QUADRATIC,10.0,100,-500) , 10.0, END_F );
-    single.set( WO::COLOR , 0.5 , 0.5 , 0.5 , END_F );
-    draw3D( single );
+    float y_val = 1.0;//*FE('a',1.0,FrameEval::INCR_TO_QUADRATIC,10.0,100,-500);
+    single.set( WO::NP_SCALE , 1.0 , y_val , 1.0, END_F );
+    single.set( WO::POSITION , 0.0 , 0.0 , 0.1 , END_F );
+    single.set( WO::COLOR , 0.5 , 0.5 , 0.1 , END_F );
+    /*
+  
+    LineManip L;
+    L.state = LineManip::VISIBLE;
+    if( ls ) L.state = LineManip::OVER;
+    L.pos = PosXYZ( 0 , y_val*0.6 , -1.0*0.6);
+    L.orientation = 0;
+    
+ManipManager MM;
+    MM.add( &single );
+    MM.draw();
+*/
+    /*
+    setTransforms3D( single );
+    draw3D_pure( single );
+    
+    Stencil::setMode( Stencil::SET_PICK_ID );
+    Stencil::setWriteValue( 3 );
+    draw3D_pure( L );
+    Stencil::disable();
+    
+    resetTransforms3D( single );
+    */
+    
+    // draw3D( single );
+    // draw3D( single );
     // draw3D_pure( single , true );
     	//    glDisable( GL_LINE_STIPPLE );
 
@@ -254,8 +423,9 @@ void handleGameIdle()
 
 int main(int nArgs , char** args)
 {
-    GLOBAL_WINDOW_WIDTH = 1280;
-    GLOBAL_WINDOW_HEIGHT = 745;
+    GLOBAL_WINDOW_WIDTH = 1024;
+    GLOBAL_WINDOW_HEIGHT = 800;
     // GLOBAL_TITLE = "Nada";
     run2D( nArgs , args );
+    delete T1;
 }

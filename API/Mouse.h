@@ -2,6 +2,7 @@
 #define __MOUSE_H__
 
 #include "Pos.h"
+#include "GEOMETRY.h"
 #include <GL/glut.h>
 
 struct MouseAB
@@ -19,8 +20,12 @@ struct MouseAB
 			// switched on or off
     PosXY savedPos;
 		
+	WO posPreview;
+
     MouseAB(): At(0,0), buttonsPressed(0)
-    {}
+    {
+	// glutSetCursor(GLUT_CURSOR_CROSSHAIR);
+    }
 			
     void setPosition(int x, int y)
     {
@@ -31,6 +36,11 @@ struct MouseAB
     {
 	bool new_state = (gl_state==GLUT_DOWN ? true : false);
 	
+	if(new_state && gl_button == GLUT_LEFT_BUTTON)
+	{
+			
+	}
+
 	switch(gl_button)
 	{
 	    case GLUT_LEFT_BUTTON:

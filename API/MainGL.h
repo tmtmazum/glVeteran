@@ -1,3 +1,6 @@
+#ifndef MAIN_GL
+#define MAIN_GL
+
 #include <GL/glut.h>
 #include <string>
 
@@ -25,6 +28,8 @@ float GLOBAL_CLEAR_COLOR_R = 0.7;
 float GLOBAL_CLEAR_COLOR_G = 0.7;
 float GLOBAL_CLEAR_COLOR_B = 0.7;
 float GLOBAL_CLEAR_COLOR_A = 0.7;
+
+bool GLOBAL_SHOW_PTS = false;
 
 std::string GLOBAL_TITLE = "Default Project Title";
 
@@ -64,3 +69,5 @@ void inline run2D(int numArguments , char** arguments)
     
     glutMainLoop();
 }
+
+#endif

@@ -13,6 +13,7 @@
 #include "Physics.h"
 #include "VECTOR.h"
 #include "FrameEval.h"
+#include "Stencil.h"
 
 #include "GEOMETRY.h"
 #include "DRAW.h"

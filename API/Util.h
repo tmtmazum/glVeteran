@@ -4,11 +4,13 @@
 #include <cmath>
 #include <cassert>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <map>
 #include <cstdlib>
 
 #include <limits>
+#include <GL/glut.h>
 
 #define END_F std::numeric_limits<float>::max()
 #define END_I std::numeric_limits<int>::max()
@@ -46,6 +48,14 @@ namespace Util
     {
 	return ::atof( s.c_str() );
     }
+    
+    inline std::string floatToString( float f )
+    {
+	std::ostringstream ss;
+	ss << f;
+	std::string s(ss.str());
+	return s;
+    }
 
     inline void moderateDivEq(float* target, float rate, float snapToZeroRange = 0.00001)
     {
@@ -53,6 +63,13 @@ namespace Util
 	// moderateDivEq( &mouseDiff.X , 0.007 );
 	*target = ( *target / (1+rate) );
 	*target = (*target < snapToZeroRange && *target > -snapToZeroRange ? 0 : *target);
+    }
+    
+    inline void printToScreen( std::string text , PosXYZ p )
+    {
+	glRasterPos3f( p.X , p.Y , p.Z );
+	for(std::string::iterator i = text.begin(); i != text.end(); ++i)
+	    glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *i);
     }
 
 };
